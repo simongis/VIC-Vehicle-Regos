@@ -3,8 +3,15 @@
  * Manages filter state, debounce, aggregate -> renderer pipeline.
  *
  * Default metric is vehicles-per-household (the normalised choropleth); a toggle
- * switches to raw total registration records. Both values are derived from the
- * one aggregate pass and retained, so toggling never fires a new query.
+ * switches to the quarter-normalised fleet estimate. Both values are derived from
+ * the one aggregate pass and retained, so toggling never fires a new query.
+ *
+ * COLOUR SCALE (2026-06-10, Simon's call): both metrics render as a CLASSED
+ * choropleth over FIXED cross-year breaks (engine/fixedStretch.ts) - 6 classes,
+ * quantile-derived from the combined all-years distribution under the current
+ * filter, rounded to nice values. Changing YEAR keeps the breaks (so change
+ * shows as class jumps); changing FILTER or METRIC recomputes them (so EV-only
+ * etc. still gets sensible breaks that are themselves year-comparable).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type FeatureLayer from "@arcgis/core/layers/FeatureLayer";
@@ -16,7 +23,9 @@ import type { LegendMode } from "../components/Legend";
 
 import { loadData, getYearData } from "../engine/loadData";
 import { aggregate } from "../engine/aggregate";
-import { buildRenderer, getRendererStats, buildPerHouseholdRenderer, getPerHouseholdStats } from "../engine/renderer";
+import { buildClassedRenderer, classCounts } from "../engine/renderer";
+import { computeFixedBreaks } from "../engine/fixedStretch";
+import type { FixedClassBreaks } from "../engine/fixedStretch";
 import { computePerHousehold } from "../engine/perHousehold";
 import type { PerHouseholdEntry, PerHouseholdResult } from "../engine/perHousehold";
 import { AggregateCache } from "../engine/cache";
@@ -42,8 +51,9 @@ interface Props {
 
 interface LegendState {
   mode: LegendMode;
-  p2: number;
-  p98: number;
+  breaks: number[];
+  counts: number[];
+  yearSpan: [number, number];
   noDataCount: number;
   vicAvg: number | null;
 }
@@ -57,6 +67,8 @@ export function ExploreView({
   // Retained results so the metric toggle re-renders without re-querying.
   const lastTotalsRef = useRef<AggregateResult | null>(null);
   const lastPerHHRef  = useRef<PerHouseholdResult | null>(null);
+  // Fixed class breaks memoised per metric + filter signature (year-independent).
+  const breaksCacheRef = useRef<Map<string, FixedClassBreaks>>(new Map());
 
   const [busy,        setBusy]        = useState(false);
   const [filterState, setFilterState] = useState<FilterState>(DEFAULT_FILTER_STATE);
@@ -70,27 +82,50 @@ export function ExploreView({
 
   const debouncedFilter = useDebounce(filterState, 250);
 
-  // Builds the renderer, popup and legend stats for a metric from retained
-  // values. Pure read of totals/perHH - no querying - so it serves both a
-  // filter change and a metric toggle.
+  // Fetches (or reuses) the fixed cross-year breaks for a metric + filter.
+  // First call for a new filter may load not-yet-cached year files.
+  const getBreaks = useCallback(
+    async (mode: LegendMode, filter: FilterState): Promise<FixedClassBreaks> => {
+      const key = `${mode}|${[...filter.fuels].sort().join(",")}|${[...filter.makes].sort().join(",")}`;
+      const hit = breaksCacheRef.current.get(key);
+      if (hit) return hit;
+      const breaks = await computeFixedBreaks(
+        dataStoreRef.current!, filter, mode, householdsByPostcode, allPostcodes, cache
+      );
+      breaksCacheRef.current.set(key, breaks);
+      return breaks;
+    },
+    [householdsByPostcode, allPostcodes]
+  );
+
+  // Builds the renderer, popup and legend from retained values + the fixed
+  // breaks. Pure read - no querying - so it serves filter changes and metric
+  // toggles alike.
   const applyRendering = useCallback(
-    (mode: LegendMode, totals: AggregateResult, perHH: PerHouseholdResult) => {
+    (mode: LegendMode, perHH: PerHouseholdResult, fixed: FixedClassBreaks) => {
+      const values = new Map<string, number | null>();
       if (mode === "per_household") {
-        const perHHmap = new Map<string, number | null>();
-        for (const pc of allPostcodes) perHHmap.set(pc, perHH.byPostcode.get(pc)?.vehiclesPerHousehold ?? null);
-        layer.renderer = buildPerHouseholdRenderer(perHHmap, allPostcodes);
-        const stats = getPerHouseholdStats(perHHmap, allPostcodes);
-        setLegend({
-          mode, p2: stats.p2, p98: stats.p98,
-          noDataCount: allPostcodes.length - stats.withData,
-          vicAvg: perHH.vicAvg,
-        });
+        for (const pc of allPostcodes) {
+          values.set(pc, perHH.byPostcode.get(pc)?.vehiclesPerHousehold ?? null);
+        }
       } else {
-        layer.renderer = buildRenderer(totals, allPostcodes);
-        const stats = getRendererStats(totals);
-        const nonZero = allPostcodes.filter((pc) => (totals.get(pc) ?? 0) > 0).length;
-        setLegend({ mode, p2: stats.p2, p98: stats.p98, noDataCount: allPostcodes.length - nonZero, vicAvg: null });
+        // Fleet estimate (records / quarters-in-year): zero -> grey "no data".
+        for (const pc of allPostcodes) {
+          const fleet = perHH.byPostcode.get(pc)?.fleet ?? 0;
+          values.set(pc, fleet > 0 ? fleet : null);
+        }
       }
+      layer.renderer = buildClassedRenderer(values, allPostcodes, fixed);
+
+      const withData = allPostcodes.filter((pc) => values.get(pc) != null).length;
+      setLegend({
+        mode,
+        breaks: fixed.breaks,
+        counts: classCounts(values, allPostcodes, fixed),
+        yearSpan: fixed.years,
+        noDataCount: allPostcodes.length - withData,
+        vicAvg: perHH.vicAvg,
+      });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       layer.popupTemplate = buildPopupTemplate(perHH.byPostcode, mode) as any;
     },
@@ -125,16 +160,10 @@ export function ExploreView({
 
     let cancelled = false;
     async function run() {
-      const yearNeedsLoad = !store!.yearCache.has(debouncedFilter.year);
-      if (yearNeedsLoad) setBusy(true);
+      setBusy(true);
       try {
         const yearData = await getYearData(store!, debouncedFilter.year);
         if (cancelled) return;
-
-        if (yearNeedsLoad) {
-          setMakes(getMakesByFrequency(store!.meta, yearData));
-          setFuels(getFuelsByFrequency(store!.meta, yearData));
-        }
 
         let totals = cache.get(debouncedFilter);
         if (!totals) {
@@ -143,13 +172,15 @@ export function ExploreView({
         }
 
         const perHH = computePerHousehold(totals, householdsByPostcode, allPostcodes, debouncedFilter.year);
+        const fixed = await getBreaks(metricRef.current, debouncedFilter);
+        if (cancelled) return;
 
         currentTotals.current = totals;
         onTotalsChange(totals);
         lastTotalsRef.current = totals;
         lastPerHHRef.current  = perHH;
 
-        applyRendering(metricRef.current, totals, perHH);
+        applyRendering(metricRef.current, perHH, fixed);
       } finally {
         if (!cancelled) setBusy(false);
       }
@@ -159,11 +190,18 @@ export function ExploreView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedFilter]);
 
-  // Metric toggle: re-render from retained values, no re-query.
+  // Metric toggle: re-render from retained values, no re-query (the breaks for
+  // the other metric may still need a one-time computation).
   useEffect(() => {
-    if (lastTotalsRef.current && lastPerHHRef.current) {
-      applyRendering(metric, lastTotalsRef.current, lastPerHHRef.current);
+    if (!lastPerHHRef.current) return;
+    let cancelled = false;
+    async function run() {
+      const fixed = await getBreaks(metric, debouncedFilter);
+      if (!cancelled && lastPerHHRef.current) applyRendering(metric, lastPerHHRef.current, fixed);
     }
+    run();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [metric, applyRendering]);
 
   function filterLabel(): string {
@@ -192,8 +230,9 @@ export function ExploreView({
       {legend && (
         <Legend
           mode={legend.mode}
-          p2={legend.p2}
-          p98={legend.p98}
+          breaks={legend.breaks}
+          counts={legend.counts}
+          yearSpan={legend.yearSpan}
           noDataCount={legend.noDataCount}
           vicAvg={legend.vicAvg}
           filterLabel={filterLabel()}
@@ -230,10 +269,13 @@ function buildPopupTemplate(byPostcode: Map<string, PerHouseholdEntry>, mode: Le
           `↳ ${fleet} vehicles (registrations est.) across ${hh!.toLocaleString()} households`
         );
       }
-      // total mode: raw registration records, with per-household as context
+      // Fleet mode: the quarter-normalised estimate is the headline (it is what
+      // the map colours), with the raw record count as context.
       return wrap(
-        `${records} registration records`,
-        perHH == null ? "↳ No household data for this postcode" : `↳ ${perHH.toFixed(2)} vehicles per household`
+        `${fleet} vehicles (fleet est.)`,
+        perHH == null
+          ? `↳ ${records} registration records · no household data`
+          : `↳ ${records} registration records · ${perHH.toFixed(2)} per household`
       );
     },
   };
