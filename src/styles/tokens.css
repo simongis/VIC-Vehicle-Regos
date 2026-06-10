@@ -1,0 +1,77 @@
+/*
+  Design tokens grounded in the actual Victorian Government Ripple design system.
+  Hex values extracted from vic.gov.au CSS custom properties (--rpl-clr-*).
+  Font family matches Ripple exactly. Not a pixel-exact Vic Gov replica -
+  this is an Esri Australia demo tool that looks trustworthy and government-adjacent.
+*/
+
+:root {
+  /* ── Brand colours (from --rpl-clr-*) ────────────────────────────────── */
+  --color-navy:        #003174;   /* --rpl-clr-primary-alt  - nav / footer */
+  --color-blue:        #0052c2;   /* --rpl-clr-primary      - interactive  */
+  --color-blue-hover:  #003174;   /* darken on hover                       */
+  --color-blue-light:  #e6f5fd;   /* --rpl-clr-accent-alt   - tinted surface */
+  --color-blue-mid:    #0095ec;   /* --rpl-clr-accent       - indicators   */
+
+  /* ── Masthead (deliberately darker than the navy nav, per Simon) ──────── */
+  --color-header:      #001b40;   /* deep navy masthead band                */
+  --color-header-2:    #002a5c;   /* secondary toolbar band under masthead  */
+  --color-gold:        #e0b300;   /* Victorian-government gold accent rule   */
+
+  /* ── Neutral surface ──────────────────────────────────────────────────── */
+  --color-surface:       #ffffff;   /* --rpl-clr-neutral-0   */
+  --color-surface-alt:   #f5f5f5;   /* --rpl-clr-neutral-100 */
+  --color-border:        #e6e6e6;   /* --rpl-clr-neutral-200 */
+  --color-border-strong: #ccc;      /* --rpl-clr-neutral-300 */
+
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  --color-text:          #1a1a1a;   /* --rpl-clr-neutral-800 */
+  --color-text-subtle:   #666;      /* --rpl-clr-neutral-600 */
+  --color-text-on-brand: #ffffff;
+
+  /* ── Accessibility ────────────────────────────────────────────────────── */
+  --color-focus:         #ff9e1b;   /* --rpl-clr-focus - Ripple orange focus ring */
+
+  /* ── Status ───────────────────────────────────────────────────────────── */
+  --color-success:  #007d85;   /* --rpl-clr-success  */
+  --color-warning:  #b75b00;   /* --rpl-clr-warning  */
+  --color-error:    #aa0028;   /* --rpl-clr-error    */
+
+  /* ── Choropleth ramp (light → Ripple primary-alt) ─────────────────────── */
+  --choropleth-low:  #dde8f7;   /* near --rpl-clr-accent-alt  */
+  --choropleth-high: #003174;   /* --rpl-clr-primary-alt       */
+  --choropleth-zero: #d9d9d9;   /* neutral grey - no data      */
+
+  /* ── Spacing (mirrors --rpl-sp-*) ────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ── Typography ───────────────────────────────────────────────────────── */
+  --font-sans:     VIC, Arial, Helvetica, sans-serif;  /* --rpl-type-font-family */
+  --font-size-sm:  13px;
+  --font-size-md:  15px;
+  --font-size-lg:  18px;
+  --line-height:   1.5;
+
+  /* ── Border radius (from --rpl-border-radius-*) ──────────────────────── */
+  --radius-sm:   4px;    /* --rpl-border-radius-2 */
+  --radius-md:   8px;    /* --rpl-border-radius-3 */
+  --radius-lg:   12px;   /* --rpl-border-radius-4 */
+  --radius-pill: 999px;  /* --rpl-border-radius-full */
+
+  /* ── Elevation (from --rpl-elevation-*) ──────────────────────────────── */
+  --shadow-sm: 0 2px 8px rgba(26, 26, 26, 0.16);          /* --rpl-elevation-1 */
+  --shadow-md: 0 4px 8px 2px rgba(26, 26, 26, 0.16);      /* --rpl-elevation-2 */
+
+  /* ── Motion ───────────────────────────────────────────────────────────── */
+  --transition-fast: 120ms ease;   /* ~--rpl-motion-speed-3 */
+  --transition-mid:  200ms ease;   /* ~--rpl-motion-speed-5 */
+
+  /* ── Layout ───────────────────────────────────────────────────────────── */
+  --filter-panel-height: 56px;
+  --legend-width: 220px;
+}

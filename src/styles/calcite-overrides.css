@@ -1,0 +1,130 @@
+/*
+  Map Ripple-grounded tokens onto Calcite CSS custom properties so Calcite
+  widgets inherit our blues and orange focus ring rather than Esri purple.
+  Reference: https://developers.arcgis.com/calcite-design-system/foundations/theming/
+*/
+
+:root {
+  /* Primary brand - overrides Esri purple */
+  --calcite-color-brand:        var(--color-blue);
+  --calcite-color-brand-hover:  var(--color-blue-hover);
+  --calcite-color-brand-press:  var(--color-navy);
+
+  /* Surfaces */
+  --calcite-color-foreground-1: var(--color-surface);
+  --calcite-color-foreground-2: var(--color-surface-alt);
+
+  /* Text */
+  --calcite-color-text-1:       var(--color-text);
+  --calcite-color-text-2:       var(--color-text-subtle);
+
+  /* Borders */
+  --calcite-color-border-1:     var(--color-border);
+  --calcite-color-border-2:     var(--color-border-strong);
+
+  /* Focus - Ripple orange */
+  --calcite-color-focus:        var(--color-focus);
+}
+
+/*
+  Theme the Make combobox so it sits on the dark navy filter bar without
+  showing a jarring white box. Scoped to the .filter-dark wrapper in
+  FilterPanel so map widgets are unaffected.
+*/
+/* ── ArcGIS Popup - Ripple-themed override ───────────────────────────────── */
+/*
+  Targets the SDK v4 feature popup class names (esri-features__* hierarchy).
+  Border-radius and box-shadow apply to the outer .esri-widget--panel card.
+  The title heading gets navy + gold keyline to match the app masthead.
+*/
+
+/* Card shape */
+.esri-popup .esri-widget--panel,
+.esri-popup.esri-widget--panel {
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.22) !important;
+  border: 1px solid var(--color-border) !important;
+  overflow: hidden;
+}
+
+/* Title heading: navy background + gold bottom rule, white text */
+.esri-features__heading,
+.esri-widget__heading {
+  background: var(--color-navy) !important;
+  border-bottom: 2px solid var(--color-gold) !important;
+  color: #fff !important;
+  font-family: var(--font-sans) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  padding: 10px 14px !important;
+  margin: 0 !important;
+  line-height: 1.3 !important;
+}
+
+/* Pagination dots / prev-next in the heading row */
+.esri-features__pagination-menu-button,
+.esri-features__pagination-previous {
+  color: rgba(255,255,255,0.75) !important;
+}
+.esri-features__pagination-menu-button:hover,
+.esri-features__pagination-previous:hover {
+  background: rgba(255,255,255,0.12) !important;
+  color: #fff !important;
+}
+
+/* Content area */
+.esri-features__content-container {
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  color: var(--color-text) !important;
+  background: var(--color-surface) !important;
+  padding: 0 !important;
+}
+
+.esri-feature-content,
+.esri-feature__content-node {
+  padding: 12px 14px !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* Footer: zoom-to link row */
+.esri-features__footer {
+  background: var(--color-surface-alt) !important;
+  border-top: 1px solid var(--color-border) !important;
+  padding: 4px 10px !important;
+}
+
+.esri-features__footer .esri-widget__anchor {
+  color: var(--color-navy) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 12px !important;
+}
+
+.esri-features__footer .esri-widget__anchor:hover {
+  color: var(--color-blue) !important;
+}
+
+/* Pointer triangle colour: matches the navy header */
+.esri-popup__pointer-direction--top {
+  border-bottom-color: var(--color-navy) !important;
+}
+.esri-popup__pointer-direction--bottom {
+  border-top-color: var(--color-navy) !important;
+}
+
+/* ── Filter panel dark theme ───────────────────────────────────────────── */
+
+.filter-dark {
+  /* Calcite vars inherit into web-component shadow DOMs via the host element */
+  --calcite-color-foreground-1:  rgba(255, 255, 255, 0.10);
+  --calcite-color-foreground-2:  rgba(255, 255, 255, 0.06);
+  --calcite-color-foreground-3:  rgba(255, 255, 255, 0.04);
+  --calcite-color-text-1:        #ffffff;
+  --calcite-color-text-2:        rgba(255, 255, 255, 0.75);
+  --calcite-color-text-3:        rgba(255, 255, 255, 0.55);
+  --calcite-color-border-1:      rgba(255, 255, 255, 0.25);
+  --calcite-color-border-2:      rgba(255, 255, 255, 0.15);
+  --calcite-color-border-3:      rgba(255, 255, 255, 0.10);
+  --calcite-color-focus:         var(--color-focus);
+}
