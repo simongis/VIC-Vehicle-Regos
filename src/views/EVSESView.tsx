@@ -31,7 +31,7 @@ import type { DataStore } from "../engine/loadData";
 import { BivariateLegend } from "../components/BivariateLegend";
 import { EVSESScatter } from "../components/EVSESScatter";
 import type { ScatterPoint } from "../components/EVSESScatter";
-import { YearSelect } from "../components/YearSelect";
+import { ControlStrip } from "../components/ControlStrip";
 
 // Build scatter colour map from the BIVARIATE_COLORS matrix so scatter and map match exactly.
 function buildClassColors(): Map<string, string> {
@@ -75,7 +75,7 @@ export function EVSESView({
   const [error,           setError]           = useState<string | null>(null);
   const [scatterPoints,   setScatterPoints]   = useState<ScatterPoint[]>([]);
   const [breaks,          setBreaks]          = useState<{ evT1: number; evT2: number; sesT1: number; sesT2: number } | null>(null);
-  const [showChart,       setShowChart]       = useState(true);
+  const [showChart,       setShowChart]       = useState(() => typeof window === "undefined" || window.innerWidth >= 768);
   const [hoveredPostcode, setHoveredPostcode] = useState<string | null>(null);
   const [extentOnly,      setExtentOnly]      = useState(true);
   const [visibleSet,      setVisibleSet]      = useState<Set<string> | null>(null);
@@ -105,10 +105,10 @@ export function EVSESView({
             const clsLabel = cls >= 0
               ? `${["Low","Mid","High"][Math.floor(cls / 3)]} EV · ${["Low","Mid","High"][cls % 3]} SES`
               : "No data";
-            return `<div style="font-family:-apple-system,sans-serif;font-size:13px;padding:2px 0">
+            return `<div style="font-size:13px;padding:2px 0">
               <div><strong>EV ownership:</strong> ${ev !== undefined ? ev.toFixed(1) + "%" : "No data"}</div>
               <div><strong>Socio-economic advantage:</strong> ${ses !== undefined ? ses + " (national percentile)" : "No data"}</div>
-              <div style="color:#666;font-size:11px;margin-top:4px">${clsLabel}</div>
+              <div style="color:var(--color-text-subtle);font-size:11px;margin-top:4px">${clsLabel}</div>
             </div>`;
           },
         };
@@ -193,41 +193,18 @@ export function EVSESView({
     view.goTo({ target: ext.clone().expand(2.2) }, { duration: 600 }).catch(() => { /* interrupted */ });
   }
 
-  if (error) {
-    return (
-      <div style={{
-        position: "absolute", top: 88, left: 12, zIndex: 20,
-        background: "var(--color-surface)", padding: 16,
-        borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-sm)",
-        color: "var(--color-error)", fontFamily: "var(--font-sans)",
-      }}>
-        {error}
-      </div>
-    );
-  }
-
   return (
     <>
       {/* Context strip - Row 2 position */}
-      <div style={{
-        position: "absolute", top: 40, left: 0, right: 0, zIndex: 20,
-        height: 48, background: "var(--color-navy)",
-        display: "flex", alignItems: "center", padding: "0 16px", gap: 12,
-        fontFamily: "var(--font-sans)", fontSize: 12, color: "rgba(255,255,255,0.8)",
-        borderTop: "1px solid rgba(255,255,255,0.12)",
-      }}>
-        <YearSelect years={years} value={year} onChange={onYearChange} />
-        <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.18)" }} />
-        <span style={{ color: "#fff", fontWeight: 600 }}>
-          EV advantage: ownership vs socio-economic status
-        </span>
-        {!ready && (
-          <div style={{
-            position: "absolute", bottom: 0, left: 0, right: 0, height: 2,
-            background: "var(--color-focus)", animation: "busyPulse 1.1s ease-in-out infinite",
-          }} />
-        )}
-      </div>
+      <ControlStrip
+        years={years}
+        year={year}
+        onYearChange={onYearChange}
+        title="EV Advantage"
+        note="Electric vehicle ownership against socio-economic advantage"
+        error={error}
+        busy={!ready && !error}
+      />
 
       {/* Bivariate legend */}
       {hasLoaded && breaks && (
@@ -241,55 +218,25 @@ export function EVSESView({
 
       {/* Collapsed state: a tab on the right edge pulls the panel back out */}
       {hasLoaded && !showChart && (
-        <button
-          onClick={() => setShowChart(true)}
-          title="Show chart"
-          style={{
-            position: "absolute", top: 96, right: 0, zIndex: 16,
-            display: "flex", alignItems: "center", gap: 6,
-            height: 36, padding: "0 14px 0 12px",
-            border: "1px solid var(--color-border)", borderRight: "none",
-            borderRadius: "var(--radius-md) 0 0 var(--radius-md)",
-            background: "var(--color-surface)", color: "var(--color-text)",
-            fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600,
-            cursor: "pointer", boxShadow: "var(--shadow-md)",
-          }}
-        >
+        <button className="edge-tab" onClick={() => setShowChart(true)} title="Show chart">
           <span aria-hidden style={{ fontSize: 14, lineHeight: 1 }}>‹</span> Chart
         </button>
       )}
 
       {/* Scatter chart panel */}
       {hasLoaded && showChart && (
-        <div style={{
-          position: "absolute", top: 88, right: 0, bottom: 0, width: CHART_WIDTH,
-          zIndex: 15, background: "var(--color-surface)",
-          borderLeft: "1px solid var(--color-border)",
-          display: "flex", flexDirection: "column",
-          boxShadow: "var(--shadow-md)",
-        }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "4px 6px 4px 14px",
-            borderBottom: "1px solid var(--color-border)",
-          }}>
-            <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 700, flex: 1 }}>
+        <div className="side-panel" style={{ width: CHART_WIDTH }}>
+          <div className="side-panel__header">
+            <h2 className="side-panel__title">
               EV ownership % vs socio-economic advantage
-            </span>
+            </h2>
             {/* Subtle toggle: sync the scatter to the current map extent */}
             <button
+              className="icon-btn"
               onClick={() => setExtentOnly((v) => !v)}
               title={extentOnly ? "Showing postcodes in view; click to show all" : "Showing all postcodes; click to sync to map"}
               aria-label="Sync chart to map extent"
               aria-pressed={extentOnly}
-              style={{
-                height: 28, width: 28, display: "flex", alignItems: "center", justifyContent: "center",
-                border: `1px solid ${extentOnly ? "var(--color-navy)" : "var(--color-border)"}`,
-                borderRadius: "var(--radius-sm)",
-                background: extentOnly ? "var(--color-navy)" : "transparent",
-                color: extentOnly ? "#fff" : "var(--color-text-subtle)",
-                cursor: "pointer", lineHeight: 0,
-              }}
             >
               {/* viewfinder / crop-to-extent glyph */}
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -298,15 +245,11 @@ export function EVSESView({
               </svg>
             </button>
             <button
+              className="icon-btn"
               onClick={() => setShowChart(false)}
               title="Hide chart"
               aria-label="Hide chart"
-              style={{
-                height: 28, width: 28, display: "flex", alignItems: "center", justifyContent: "center",
-                border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)",
-                background: "transparent", color: "var(--color-text-subtle)",
-                cursor: "pointer", fontSize: 15, lineHeight: 1,
-              }}
+              style={{ fontSize: 15 }}
             >
               ›
             </button>
@@ -320,10 +263,7 @@ export function EVSESView({
               onSelect={handleSelect}
             />
           </div>
-          <div style={{
-            padding: "6px 14px", fontFamily: "var(--font-sans)", fontSize: 10,
-            color: "var(--color-text-subtle)", borderTop: "1px solid var(--color-border)",
-          }}>
+          <div className="side-panel__foot">
             {extentOnly
               ? `${displayedPoints.length} of ${scatterPoints.length} postcodes in view`
               : `${scatterPoints.length} postcodes`}

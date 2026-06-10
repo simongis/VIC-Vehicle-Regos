@@ -26,11 +26,6 @@
   --calcite-color-focus:        var(--color-focus);
 }
 
-/*
-  Theme the Make combobox so it sits on the dark navy filter bar without
-  showing a jarring white box. Scoped to the .filter-dark wrapper in
-  FilterPanel so map widgets are unaffected.
-*/
 /* ── ArcGIS Popup - Ripple-themed override ───────────────────────────────── */
 /*
   Targets the SDK v4 feature popup class names (esri-features__* hierarchy).
@@ -113,18 +108,5 @@
   border-top-color: var(--color-navy) !important;
 }
 
-/* ── Filter panel dark theme ───────────────────────────────────────────── */
-
-.filter-dark {
-  /* Calcite vars inherit into web-component shadow DOMs via the host element */
-  --calcite-color-foreground-1:  rgba(255, 255, 255, 0.10);
-  --calcite-color-foreground-2:  rgba(255, 255, 255, 0.06);
-  --calcite-color-foreground-3:  rgba(255, 255, 255, 0.04);
-  --calcite-color-text-1:        #ffffff;
-  --calcite-color-text-2:        rgba(255, 255, 255, 0.75);
-  --calcite-color-text-3:        rgba(255, 255, 255, 0.55);
-  --calcite-color-border-1:      rgba(255, 255, 255, 0.25);
-  --calcite-color-border-2:      rgba(255, 255, 255, 0.15);
-  --calcite-color-border-3:      rgba(255, 255, 255, 0.10);
-  --calcite-color-focus:         var(--color-focus);
-}
+/* (The .filter-dark theme block was removed 2026-06-10: the row-2 control
+   strip is now a light surface and the dark Calcite overrides were dead.) */

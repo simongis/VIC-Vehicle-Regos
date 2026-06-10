@@ -144,7 +144,7 @@ export function ExploreView({
         const yearData = await getYearData(store, year);
         setMakes(getMakesByFrequency(store.meta, yearData));
         setFuels(getFuelsByFrequency(store.meta, yearData));
-        setFilterState((p) => ({ ...p, year, makes: [], fuels: [] }));
+        setFilterState((p) => ({ ...p, year }));
       } finally {
         if (!cancelled) setBusy(false);
       }
@@ -255,9 +255,9 @@ function buildPopupTemplate(byPostcode: Map<string, PerHouseholdEntry>, mode: Le
       const hh = e?.households;
 
       const wrap = (primary: string, secondary: string) =>
-        `<div style="font-family:-apple-system,sans-serif;font-size:13px;padding:2px 0">
+        `<div style="font-size:13px;padding:2px 0">
           <div><strong style="font-size:15px">${primary}</strong></div>
-          <div style="color:#555;font-size:12px;margin-top:3px">${secondary}</div>
+          <div style="color:var(--color-text-subtle);font-size:12px;margin-top:3px">${secondary}</div>
         </div>`;
 
       if (mode === "per_household") {

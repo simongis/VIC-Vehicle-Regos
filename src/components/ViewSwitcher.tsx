@@ -21,6 +21,9 @@ interface Props {
 
 export function ViewSwitcher({ current, onChange }: Props) {
   return (
+    // Ripple primary-nav style: full-height tabs with a gold underline
+    // indicator on the active item, not floating pills. Styling lives in
+    // ui.css (.masthead-tab) so hover/focus/active are defined once.
     <nav aria-label="Views" style={{ display: "flex", alignItems: "stretch", gap: 2 }}>
       {VIEWS.map((v) => {
         const active = v.id === current;
@@ -29,34 +32,13 @@ export function ViewSwitcher({ current, onChange }: Props) {
             key={v.id}
             onClick={() => onChange(v.id)}
             aria-current={active ? "page" : undefined}
-            className="rpl-tab"
-            style={{
-              // Ripple primary-nav style: full-height tab with a gold underline
-              // indicator on the active item, not a floating pill.
-              height: "100%",
-              padding: "0 14px",
-              border: "none",
-              borderBottom: active ? "3px solid var(--color-gold)" : "3px solid transparent",
-              background: "transparent",
-              color: active ? "#fff" : "rgba(255,255,255,0.66)",
-              fontSize: 13,
-              fontFamily: "var(--font-sans)",
-              fontWeight: active ? 700 : 500,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              transition: "color 120ms ease, border-color 120ms ease",
-              outline: "none",
-            }}
+            className="masthead-tab"
             title={v.label}
           >
             {v.shortLabel}
           </button>
         );
       })}
-      <style>{`
-        .rpl-tab:hover { color: #fff !important; border-bottom-color: rgba(255,255,255,0.45) !important; }
-        .rpl-tab:focus-visible { box-shadow: inset 0 0 0 2px var(--color-focus); }
-      `}</style>
     </nav>
   );
 }

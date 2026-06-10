@@ -36,7 +36,9 @@ import {
   type StrengthDomain,
 } from "../engine/dominantMake";
 import type UniqueValueRenderer from "@arcgis/core/renderers/UniqueValueRenderer";
-import { YearSelect } from "../components/YearSelect";
+import { ControlStrip } from "../components/ControlStrip";
+import { MapCard, MapCardRow } from "../components/MapCard";
+import { SegmentedControl } from "../components/SegmentedControl";
 
 interface Props {
   layer: FeatureLayer;
@@ -50,6 +52,7 @@ interface Props {
 
 export function DominantMakeView({ layer, view, dataStore, year, years, onYearChange, graphicsByPostcode }: Props) {
   const [ready, setReady] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [legend, setLegend] = useState<DominantLegendItem[]>([]);
   const [strength, setStrength] = useState<StrengthDomain | null>(null);
@@ -220,6 +223,7 @@ export function DominantMakeView({ layer, view, dataStore, year, years, onYearCh
         setLegend(legend);
         setStrength(strength);
         setReady(true);
+        setHasLoaded(true);
       } catch (err) {
         if (!cancelled) setError(String(err));
       }
@@ -248,94 +252,71 @@ export function DominantMakeView({ layer, view, dataStore, year, years, onYearCh
   return (
     <>
       {/* Context strip - Row 2 position */}
-      <div style={STRIP}>
-        <YearSelect years={years} value={year} onChange={onYearChange} />
-        <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.18)" }} />
-        <span style={{ color: "#fff", fontWeight: 600 }}>Dominant vehicle make by postcode</span>
-        <span style={{ opacity: 0.7, fontSize: 11 }}>
-          {pieMode
+      <ControlStrip
+        years={years}
+        year={year}
+        onYearChange={onYearChange}
+        title="Dominant Make"
+        note={pieMode
             ? "Top-5 make mix · pie size = registrations · click for breakdown"
             : "Colour = leading make · opacity = how strongly it leads"}
-        </span>
-        {error && <span style={{ color: "#ffb4b4", fontSize: 11 }}>{error}</span>}
-        {!ready && !error && <div style={BUSY} />}
-      </div>
+        error={error}
+        busy={!ready && !error}
+      />
 
       {/* Legend - bottom left, matching the other presets */}
-      {ready && legend.length > 0 && (
-        <div style={LEGEND_BOX}>
-          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 12 }}>Leading make</div>
+      {hasLoaded && legend.length > 0 && (
+        <MapCard
+          title="Leading make"
+          collapsible
+          minWidth={200}
+          maxWidth={230}
+          footer={
+            // Strength-of-lead ramp only meaningful in colour-map mode.
+            strength && !pieMode ? (
+              <>
+                <div style={{ fontWeight: 600, color: "var(--color-text)", marginBottom: 4 }}>
+                  Strength of lead
+                </div>
+                <div style={{
+                  height: 10, borderRadius: 2, border: "1px solid rgba(0,0,0,0.08)",
+                  background: `linear-gradient(to right,
+                    rgba(60,60,60,${ALPHA_MIN}), rgba(60,60,60,${ALPHA_MAX}))`,
+                }} />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+                  <span>Contested (~{Math.round(strength.loShare * 100)}%)</span>
+                  <span>Decisive ({Math.round(strength.hiShare * 100)}%+)</span>
+                </div>
+                <div style={{ marginTop: 6 }}>
+                  Share = the leading make's portion of the postcode's total registrations.
+                  Popups name the true winner even where it is outside the top 5.
+                </div>
+              </>
+            ) : undefined
+          }
+        >
           {legend.map((item) => (
-            <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-              <span style={{
-                width: 14, height: 10, borderRadius: 2, flexShrink: 0,
-                background: item.color, border: "1px solid rgba(0,0,0,0.08)",
-              }} />
-              <span style={{ flex: 1 }}>{item.label}</span>
-              <span style={{ color: "var(--color-text-subtle)", fontSize: 10 }}>
-                {item.wins} postcode{item.wins !== 1 ? "s" : ""}
-              </span>
-            </div>
+            <MapCardRow
+              key={item.label}
+              color={item.color}
+              label={item.label}
+              count={`${item.wins} postcode${item.wins !== 1 ? "s" : ""}`}
+            />
           ))}
           {/* Mode toggle: Predominance (choropleth) vs Pie charts (cluster donuts) */}
           <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--color-border)" }}>
-            <div
-              role="radiogroup"
-              aria-label="Display mode"
-              style={{
-                display: "flex", height: 28, padding: 2, gap: 1,
-                background: "rgba(0,0,0,0.04)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-sm)",
-              }}
-            >
-              {([
-                { value: false, label: "Colour map" },
-                { value: true,  label: "Pie charts" },
-              ] as const).map(({ value, label }) => (
-                <button
-                  key={label}
-                  role="radio"
-                  aria-checked={pieMode === value}
-                  onClick={() => setPieMode(value)}
-                  style={{
-                    flex: 1, height: 24, border: "none",
-                    borderRadius: "var(--radius-sm)",
-                    background: pieMode === value ? "var(--color-navy)" : "transparent",
-                    color: pieMode === value ? "#fff" : "var(--color-text-subtle)",
-                    fontSize: 11, fontWeight: pieMode === value ? 600 : 400,
-                    fontFamily: "var(--font-sans)", cursor: "pointer",
-                    whiteSpace: "nowrap", transition: "all var(--transition-fast)",
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              value={pieMode ? "pies" : "map"}
+              options={[
+                { value: "map",  label: "Colour map" },
+                { value: "pies", label: "Pie charts" },
+              ] as const}
+              onChange={(v) => setPieMode(v === "pies")}
+              ariaLabel="Display mode"
+              fill
+            />
           </div>
-
-          {/* Strength-of-lead ramp only shown in colour-map mode (not meaningful for pies). */}
-          {strength && !pieMode && (
-            <div style={LEGEND_FOOT}>
-              <div style={{ fontWeight: 600, color: "var(--color-text)", marginBottom: 4 }}>
-                Strength of lead
-              </div>
-              <div style={{
-                height: 10, borderRadius: 2, border: "1px solid rgba(0,0,0,0.08)",
-                background: `linear-gradient(to right,
-                  rgba(60,60,60,${ALPHA_MIN}), rgba(60,60,60,${ALPHA_MAX}))`,
-              }} />
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
-                <span>Contested (~{Math.round(strength.loShare * 100)}%)</span>
-                <span>Decisive ({Math.round(strength.hiShare * 100)}%+)</span>
-              </div>
-              <div style={{ marginTop: 6 }}>
-                Share = the leading make's portion of the postcode's total registrations.
-                Popups name the true winner even where it is outside the top 5.
-              </div>
-            </div>
-          )}
-        </div>
+        </MapCard>
       )}
     </>
   );
@@ -369,28 +350,3 @@ function buildPopup(
   };
 }
 
-const STRIP: React.CSSProperties = {
-  position: "absolute", top: 40, left: 0, right: 0, zIndex: 20,
-  height: 48, background: "var(--color-navy)",
-  display: "flex", alignItems: "center", padding: "0 16px", gap: 12,
-  fontFamily: "var(--font-sans)", fontSize: 12, color: "rgba(255,255,255,0.8)",
-  borderTop: "1px solid rgba(255,255,255,0.12)",
-};
-
-const BUSY: React.CSSProperties = {
-  position: "absolute", bottom: 0, left: 0, right: 0, height: 2,
-  background: "var(--color-focus)", animation: "busyPulse 1.1s ease-in-out infinite",
-};
-
-const LEGEND_BOX: React.CSSProperties = {
-  position: "absolute", bottom: 32, left: 12, zIndex: 10,
-  background: "var(--color-surface)", border: "1px solid var(--color-border)",
-  borderRadius: "var(--radius-md)", padding: "12px 14px", width: "max-content", maxWidth: 210,
-  boxShadow: "var(--shadow-md)", fontFamily: "var(--font-sans)", fontSize: 12,
-  color: "var(--color-text)",
-};
-
-const LEGEND_FOOT: React.CSSProperties = {
-  marginTop: 6, paddingTop: 8, borderTop: "1px solid var(--color-border)",
-  fontSize: 10, color: "var(--color-text-subtle)", lineHeight: 1.4,
-};

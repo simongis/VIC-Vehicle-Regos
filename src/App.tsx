@@ -85,41 +85,42 @@ export function App() {
       />
 
       {/* ── Row 1: Victorian-Government-style masthead + primary nav ── */}
-      <div
+      <header
+        className="masthead"
         style={{
           position: "absolute",
           top: 0, left: 0, right: 0,
           height: ROW1_H,
-          zIndex: 30,
+          zIndex: "var(--z-masthead)" as unknown as number,
           background: "var(--color-header)",
           display: "flex",
           alignItems: "stretch",
           padding: "0 16px 0 0",
           fontFamily: "var(--font-sans)",
           // Gold keyline along the bottom of the masthead - a recognisable
-          // Victorian-Government device, and a crisp separation from the toolbar.
+          // Victorian-Government device, and a crisp separation from the strip.
           borderBottom: "2px solid var(--color-gold)",
         }}
       >
         {/* Brand lockup: gold tab + title, reads as an official product masthead */}
-        <div style={{ display: "flex", alignItems: "center", flexShrink: 0, paddingLeft: 16 }}>
+        <div className="masthead-brand" style={{ display: "flex", alignItems: "center", flexShrink: 0, paddingLeft: 16 }}>
           <span aria-hidden style={{
             width: 4, height: 22, background: "var(--color-gold)", borderRadius: 1, marginRight: 12,
           }} />
-          <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.1, whiteSpace: "nowrap" }}>
+          <h1 style={{ display: "flex", flexDirection: "column", lineHeight: 1.1, whiteSpace: "nowrap", margin: 0 }}>
             <span style={{
-              color: "rgba(255,255,255,0.62)", fontSize: 9, fontWeight: 600,
+              color: "var(--on-dark-subtle)", fontSize: 9, fontWeight: 600,
               textTransform: "uppercase", letterSpacing: "0.13em",
             }}>
               Victoria
             </span>
-            <span style={{ color: "#fff", fontWeight: 700, fontSize: 14, letterSpacing: "-0.01em" }}>
+            <span style={{ color: "var(--on-dark-strong)", fontWeight: 700, fontSize: 14, letterSpacing: "-0.01em" }}>
               Vehicle Registrations
             </span>
-          </span>
+          </h1>
         </div>
 
-        <div style={{ width: 1, margin: "10px 18px", background: "rgba(255,255,255,0.16)", flexShrink: 0 }} />
+        <div className="masthead-divider" style={{ width: 1, margin: "10px 18px", background: "var(--on-dark-divider)", flexShrink: 0 }} />
 
         <ViewSwitcher current={activeView} onChange={handleViewChange} />
         {/* Year lives in each view's Row 2 strip, alongside that view's controls. */}
@@ -128,19 +129,21 @@ export function App() {
             Source is the Victorian Department of Transport and Planning (DTP)
             "Whole fleet vehicle registration snapshot by postcode". */}
         <a
+          className="masthead-provenance"
           href="https://discover.data.vic.gov.au/dataset/whole-fleet-vehicle-registration-snapshot-by-postcode"
           target="_blank"
           rel="noopener noreferrer"
           title="Data source: Victorian Department of Transport and Planning - Vehicle registration snapshot by postcode (opens in a new tab)"
           style={{
             marginLeft: "auto", alignSelf: "center", flexShrink: 0, paddingLeft: 16,
-            color: "rgba(255,255,255,0.66)", fontSize: 10.5, lineHeight: 1.2,
+            color: "var(--on-dark-subtle)", fontSize: 10.5, lineHeight: 1.2,
             textDecoration: "none", whiteSpace: "nowrap",
           }}
         >
           Data: Victorian DTP <span aria-hidden>&#8599;</span>
         </a>
         <a
+          className="masthead-provenance"
           href="https://github.com/simongis/VIC-Vehicle-Regos"
           target="_blank"
           rel="noopener noreferrer"
@@ -163,7 +166,7 @@ export function App() {
               1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
           </svg>
         </a>
-      </div>
+      </header>
 
       {/* ── Row 2: Context controls - rendered by the active view ── */}
       {/* (Each view renders its own 48px strip absolutely positioned at top: ROW1_H) */}

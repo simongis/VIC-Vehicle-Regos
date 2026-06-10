@@ -11,7 +11,8 @@ import { loadTimeline } from "../engine/loadTimeline";
 import { TimelineChart } from "../components/TimelineChart";
 import type { TimelineMode } from "../components/TimelineChart";
 import type { TimelineEntry } from "../types";
-import { YearSelect } from "../components/YearSelect";
+import { ControlStrip } from "../components/ControlStrip";
+import { SegmentedControl } from "../components/SegmentedControl";
 
 interface Props {
   sharedLayer: FeatureLayer;
@@ -45,44 +46,31 @@ export function TimelineView({ sharedLayer, year, years, onYearChange }: Props) 
     };
   }, [entries]);
 
-  const tab = (m: TimelineMode, label: string) => (
-    <button
-      onClick={() => setMode(m)}
-      style={{
-        height: 26, padding: "0 12px",
-        border: "1px solid rgba(255,255,255,0.3)", borderRadius: "var(--radius-sm)",
-        background: mode === m ? "rgba(255,255,255,0.16)" : "transparent",
-        color: "#fff", fontSize: 11, cursor: "pointer", fontFamily: "var(--font-sans)",
-        fontWeight: mode === m ? 600 : 400,
-      }}
-    >
-      {label}
-    </button>
-  );
-
   return (
     <>
       {/* Context strip - Row 2 position */}
-      <div style={{
-        position: "absolute", top: 40, left: 0, right: 0, zIndex: 20,
-        height: 48, background: "var(--color-navy)",
-        display: "flex", alignItems: "center", padding: "0 16px", gap: 12,
-        fontFamily: "var(--font-sans)", fontSize: 12, color: "rgba(255,255,255,0.8)",
-        borderTop: "1px solid rgba(255,255,255,0.12)",
-      }}>
-        <YearSelect years={years} value={year} onChange={onYearChange} />
-        <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.18)" }} />
-        <span style={{ color: "#fff", fontWeight: 600 }}>Registration trends: quarterly</span>
-        <div style={{ display: "flex", gap: 6 }}>
-          {tab("ev", "Electric uptake")}
-          {tab("mix", "Fuel mix")}
-        </div>
-        {error && <span style={{ color: "#ffb4b4", fontSize: 11 }}>{error}</span>}
-      </div>
+      <ControlStrip
+        years={years}
+        year={year}
+        onYearChange={onYearChange}
+        title="Registration Trends"
+        error={error}
+      >
+        <SegmentedControl
+          value={mode}
+          options={[
+            { value: "ev",  label: "Electric uptake" },
+            { value: "mix", label: "Fuel mix" },
+          ] as const}
+          onChange={setMode}
+          ariaLabel="Chart mode"
+        />
+      </ControlStrip>
 
       {/* Chart surface - covers the map area below the two top rows */}
       <div style={{
-        position: "absolute", top: 88, left: 0, right: 0, bottom: 0, zIndex: 15,
+        position: "absolute", top: "var(--topbar-h)", left: 0, right: 0, bottom: 0,
+        zIndex: "var(--z-panel)" as unknown as number,
         background: "var(--color-surface)", display: "flex", flexDirection: "column",
         fontFamily: "var(--font-sans)",
       }}>
@@ -90,18 +78,18 @@ export function TimelineView({ sharedLayer, year, years, onYearChange }: Props) 
           padding: "14px 20px 4px", display: "flex", alignItems: "baseline", gap: 16,
           flexWrap: "wrap",
         }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--color-text, #1a1a1a)" }}>
+          <h3 style={{ margin: 0, fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--color-text)" }}>
             {mode === "ev" ? "Electric vehicle uptake" : "Fuel composition"}
-          </h2>
+          </h3>
           {mode === "ev" && evGrowth && (
-            <span style={{ fontSize: 13, color: "var(--color-text-subtle, #555)" }}>
+            <span style={{ fontSize: "var(--text-md)", color: "var(--color-text-subtle)" }}>
               EV registrations <strong style={{ color: "#00a37a" }}>
                 {evGrowth.multiple.toFixed(1)}×
               </strong> from {evGrowth.first.year} Q{evGrowth.first.quarter} to {evGrowth.last.year} Q{evGrowth.last.quarter}
               &nbsp;({evGrowth.first.total.toLocaleString()} → {evGrowth.last.total.toLocaleString()})
             </span>
           )}
-          <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--color-text-subtle, #888)" }}>
+          <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--color-text-subtle)" }}>
             State-wide registration snapshots · {year} highlighted
           </span>
         </div>

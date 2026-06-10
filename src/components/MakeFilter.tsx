@@ -117,24 +117,21 @@ export function MakeFilter({ makes, selected, onChange }: Props) {
       <button
         ref={triggerRef}
         type="button"
+        className="chip"
+        data-active={current ? "" : undefined}
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         title="Filter by make"
         style={{
-          height: 28, minWidth: 150, maxWidth: 240,
+          minWidth: 150, maxWidth: 240,
           display: "flex", alignItems: "center", gap: 8, padding: "0 10px",
-          border: `1px solid ${current ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.25)"}`,
-          borderRadius: "var(--radius-sm)",
-          background: current ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.06)",
-          color: "#fff", fontSize: 12, fontWeight: current ? 600 : 400,
-          fontFamily: "var(--font-sans)", cursor: "pointer", outline: "none", whiteSpace: "nowrap",
         }}
       >
         <span style={{ flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis" }}>
           {selectedMake ? selectedMake.label : "All makes"}
         </span>
-        <span aria-hidden style={{ fontSize: 9, opacity: 0.8 }}>{open ? "▲" : "▼"}</span>
+        <span aria-hidden style={{ fontSize: 9, opacity: 0.8 }}>{open ? "▴" : "▾"}</span>
       </button>
 
       {open && rect && createPortal(
@@ -142,7 +139,7 @@ export function MakeFilter({ makes, selected, onChange }: Props) {
           ref={panelRef}
           role="listbox"
           style={{
-            position: "fixed", top: rect.bottom + 6, left: panelLeft, zIndex: 1000,
+            position: "fixed", top: rect.bottom + 6, left: panelLeft, zIndex: "var(--z-popover)" as unknown as number,
             width: panelWidth, maxHeight: "min(440px, calc(100vh - 110px))",
             display: "flex", flexDirection: "column",
             background: "var(--color-surface)", color: "var(--color-text)",
@@ -154,13 +151,14 @@ export function MakeFilter({ makes, selected, onChange }: Props) {
             {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
             <input
               autoFocus
+              className="popover-search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search makes"
               style={{
                 width: "100%", height: 32, padding: "0 10px", fontSize: 13,
                 fontFamily: "var(--font-sans)", color: "var(--color-text)",
-                border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-sm)", outline: "none",
+                border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-sm)",
               }}
             />
           </div>
@@ -216,6 +214,7 @@ function Row({ selected, onClick, children }: { selected: boolean; onClick: () =
     <button
       type="button"
       role="option"
+      className="popover-row"
       aria-selected={selected}
       onClick={onClick}
       style={{
