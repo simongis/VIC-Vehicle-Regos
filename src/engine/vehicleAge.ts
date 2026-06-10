@@ -16,12 +16,13 @@ import { postcodeOutline } from "./mapStyle";
 
 import type { VehiclesMeta, VehicleAgeYear } from "../types";
 
+const BASE = import.meta.env.BASE_URL;
 let cache = new Map<number, VehicleAgeYear>();
 
 export async function loadVehicleAge(year: number): Promise<VehicleAgeYear> {
   const hit = cache.get(year);
   if (hit) return hit;
-  const data = await fetch(`/data/vehicle_age_${year}.json`).then(
+  const data = await fetch(`${BASE}data/vehicle_age_${year}.json`).then(
     (r) => r.json() as Promise<VehicleAgeYear>
   );
   cache.set(year, data);

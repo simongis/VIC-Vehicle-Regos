@@ -1,5 +1,6 @@
 import type { TimelineEntry } from "../types";
 
+const BASE = import.meta.env.BASE_URL;
 let cache: TimelineEntry[] | null = null;
 
 /**
@@ -9,7 +10,7 @@ let cache: TimelineEntry[] | null = null;
  */
 export async function loadTimeline(): Promise<TimelineEntry[]> {
   if (cache) return cache;
-  const data = await fetch("/data/timeline.json").then((r) => r.json() as Promise<TimelineEntry[]>);
+  const data = await fetch(`${BASE}data/timeline.json`).then((r) => r.json() as Promise<TimelineEntry[]>);
   cache = data;
   console.log(`[loadTimeline] ${data.length} quarterly fuel records loaded`);
   return data;

@@ -1,5 +1,7 @@
 import type { VehiclesMeta, VehiclesYear } from "../types";
 
+const BASE = import.meta.env.BASE_URL;
+
 export interface DataStore {
   meta: VehiclesMeta;
   yearCache: Map<number, VehiclesYear>;
@@ -16,8 +18,8 @@ export async function loadData(defaultYear: number): Promise<DataStore> {
   if (store) return store;
 
   const [meta, yearData] = await Promise.all([
-    fetch("/data/vehicles_meta.json").then((r) => r.json() as Promise<VehiclesMeta>),
-    fetch(`/data/vehicles_${defaultYear}.json`).then(
+    fetch(`${BASE}data/vehicles_meta.json`).then((r) => r.json() as Promise<VehiclesMeta>),
+    fetch(`${BASE}data/vehicles_${defaultYear}.json`).then(
       (r) => r.json() as Promise<VehiclesYear>
     ),
   ]);
@@ -53,7 +55,7 @@ export async function getYearData(
     throw new Error(`Year ${year} not available in data. Available: ${dataStore.meta.years}`);
   }
 
-  const yearData = await fetch(`/data/vehicles_${year}.json`).then(
+  const yearData = await fetch(`${BASE}data/vehicles_${year}.json`).then(
     (r) => r.json() as Promise<VehiclesYear>
   );
   dataStore.yearCache.set(year, yearData);
