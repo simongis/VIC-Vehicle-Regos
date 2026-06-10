@@ -266,13 +266,13 @@ function buildPopupTemplate(byPostcode: Map<string, PerHouseholdEntry>, mode: Le
         }
         return wrap(
           `${perHH.toFixed(2)} vehicles per household`,
-          `↳ ${fleet} vehicles (registrations est.) across ${hh!.toLocaleString()} households`
+          `↳ ${fleet} vehicles across ${hh!.toLocaleString()} households`
         );
       }
-      // Fleet mode: the quarter-normalised estimate is the headline (it is what
+      // Total vehicles mode: the quarter-normalised estimate is the headline (it is what
       // the map colours), with the raw record count as context.
       return wrap(
-        `${fleet} vehicles (fleet est.)`,
+        `${fleet} vehicles`,
         perHH == null
           ? `↳ ${records} registration records · no household data`
           : `↳ ${records} registration records · ${perHH.toFixed(2)} per household`

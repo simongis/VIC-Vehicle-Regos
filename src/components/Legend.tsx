@@ -20,7 +20,7 @@ interface Props {
 
 export function Legend({ mode, breaks, counts, yearSpan, noDataCount, filterLabel, vicAvg }: Props) {
   const perHH = mode === "per_household";
-  const title = perHH ? "Vehicles per household" : "Total vehicles (fleet est.)";
+  const title = perHH ? "Vehicles per household" : "Total vehicles";
   const fmt = (v: number) => (perHH ? trimZeros(v) : Math.round(v).toLocaleString());
 
   // Class row labels: "< b1", "b1 – b2", ..., "b5 +" (en dash in numeric ranges).
@@ -38,7 +38,7 @@ export function Legend({ mode, breaks, counts, yearSpan, noDataCount, filterLabe
         Class breaks held constant {yearSpan[0]}–{yearSpan[1]}, so years compare directly.<br />
         {perHH
           ? "Registered vehicles (quarterly average) per ABS household."
-          : "Estimated standing fleet = registration records ÷ quarters in the year."}
+          : "Total vehicles = registration records ÷ quarters in the year."}
       </>
     }>
       {CLASS_COLORS.map((color, i) => (
