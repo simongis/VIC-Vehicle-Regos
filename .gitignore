@@ -12,6 +12,7 @@ dist-ssr/
 
 # Markdown docs (project context, specs, backlogs - kept locally)
 *.md
+!README.md
 
 # Claude Code / Superpowers local state
 .claude/
