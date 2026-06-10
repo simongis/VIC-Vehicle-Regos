@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { compression } from "vite-plugin-compression2";
 
 export default defineConfig({
+  base: "/VIC-Vehicle-Regos/",
   plugins: [
     react(),
     // Pre-compress static assets (including the vehicles_*.json data files)
