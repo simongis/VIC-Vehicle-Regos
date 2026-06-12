@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment / secrets
+.env
+.env.*
+*.local
+
+# Markdown docs (project context, specs, backlogs - kept locally)
+*.md
+!README.md
+
+# Claude Code / Superpowers local state
+.claude/
+.superpowers/
+
+# Playwright MCP snapshots and logs
+.playwright-mcp/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Debug screenshots
+*.png
+*.jpg
+
+# Stray artefacts
+C:Workdevcarspublicdata
