@@ -365,7 +365,7 @@ export function buildMakePopupContent(
   const merc    = attrs[`${prefix}merc`]    ?? 0;
   const hyundai = attrs[`${prefix}hyundai`] ?? 0;
   const top5 = toyota + ford + holden + merc + hyundai;
-  const pct = (v: number) => top5 > 0 ? (v / top5 * 100).toFixed(1) + "%" : "—";
+  const pct = (v: number) => top5 > 0 ? (v / top5 * 100).toFixed(1) + "%" : "-";
   const rows: [string, string, number][] = [
     ["Toyota",        "#EB0A1E", toyota],
     ["Ford",          "#00529B", ford],
@@ -373,12 +373,14 @@ export function buildMakePopupContent(
     ["Mercedes-Benz", "#7D3C98", merc],
     ["Hyundai",       "#E69F00", hyundai],
   ];
+  // Percentage leads (bold), raw count follows in a muted column (Simon's request).
   const tableRows = rows
     .map(([name, col, val]) =>
       `<tr>` +
       `<td style="padding:3px 0 3px 0;width:12px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${col}"></span></td>` +
       `<td style="padding:3px 10px 3px 6px;color:#333">${name}</td>` +
       `<td style="text-align:right;font-weight:600;padding:3px 0">${pct(val)}</td>` +
+      `<td style="text-align:right;color:#888;font-size:12px;font-variant-numeric:tabular-nums;padding:3px 0 3px 12px">${val.toLocaleString()}</td>` +
       `</tr>`)
     .join("");
   const div = document.createElement("div");
@@ -414,7 +416,7 @@ export function buildPieClusterReduction(): FeatureReductionCluster {
     }] as any,
   });
 
-  const clusterTitleExpr = `IIF($feature.cluster_count == 1, "Make mix — 1 postcode", "Make mix — " + Text($feature.cluster_count) + " postcodes")`;
+  const clusterTitleExpr = `IIF($feature.cluster_count == 1, "Make mix: 1 postcode", "Make mix: " + Text($feature.cluster_count) + " postcodes")`;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const buildClusterContent = (event: { graphic: { attributes: Record<string, any> } }) => {

@@ -32,7 +32,6 @@ import {
   ALPHA_MIN,
   ALPHA_MAX,
   type DominantLegendItem,
-  type DominantMake,
   type StrengthDomain,
 } from "../engine/dominantMake";
 import type UniqueValueRenderer from "@arcgis/core/renderers/UniqueValueRenderer";
@@ -73,11 +72,38 @@ export function DominantMakeView({ layer, view, dataStore, year, years, onYearCh
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const buildPiePopupContent = (event: { graphic: { attributes: Record<string, any> } }) => {
     const a = event.graphic.attributes as Record<string, number>;
-    const pc = (a as Record<string, unknown>).POSTCODE as string | undefined;
-    const scope = pc
-      ? `${(a.TOTAL_COUNT ?? 0).toLocaleString()} total registrations`
-      : `${(a.TOTAL_COUNT ?? 0).toLocaleString()} registrations`;
-    return buildMakePopupContent(a, "", scope);
+    // Map the layer field names (TOYOTA_COUNT etc.) onto the lowercase keys
+    // buildMakePopupContent expects. A previous version passed the raw attributes
+    // straight through, so every individual-postcode pie popup read undefined and
+    // rendered dashes with "0 total registrations" (B-008).
+    const counts: Record<string, number> = {
+      toyota:  a.TOYOTA_COUNT  ?? 0,
+      ford:    a.FORD_COUNT    ?? 0,
+      holden:  a.HOLDEN_COUNT  ?? 0,
+      merc:    a.MERC_COUNT    ?? 0,
+      hyundai: a.HYUNDAI_COUNT ?? 0,
+    };
+    return buildMakePopupContent(counts, "", `${(a.TOTAL_COUNT ?? 0).toLocaleString()} total registrations`);
+  };
+
+  // Per-postcode make-breakdown popup, shared by BOTH modes: the colour-map polygons
+  // and the invisible outline polygons in pie mode (so clicking ANYWHERE inside a
+  // postcode opens it, not just the pie symbol). Reads the breakdown ref at click
+  // time, so year changes never leave a stale closure behind.
+  const buildPostcodePopupContent = (feature: { graphic: { attributes: Record<string, unknown> } }) => {
+    const pc = feature.graphic.attributes.POSTCODE as string;
+    const bd = breakdownRef.current.get(pc);
+    if (!bd || bd.total <= 0) {
+      const div = document.createElement("div");
+      div.style.cssText = "font-size:13px;font-family:var(--font-sans),-apple-system,sans-serif";
+      div.textContent = "No registration data for this postcode.";
+      return div;
+    }
+    return buildMakePopupContent(
+      { toyota: bd.toyota, ford: bd.ford, holden: bd.holden, merc: bd.merc, hyundai: bd.hyundai },
+      "",
+      `${bd.total.toLocaleString()} total registrations`
+    );
   };
 
   const buildPieLayer = (): ArcFeatureLayer => {
@@ -110,6 +136,7 @@ export function DominantMakeView({ layer, view, dataStore, year, years, onYearCh
       featureReduction: buildPieClusterReduction() as any,
       popupTemplate: {
         title: "Postcode {POSTCODE}",
+        outFields: ["*"],
         content: buildPiePopupContent,
       } as any,
       legendEnabled: false,
@@ -147,11 +174,25 @@ export function DominantMakeView({ layer, view, dataStore, year, years, onYearCh
   };
 
   useEffect(() => {
-    // Build once from the loaded polygon geometries — thin grey outlines only.
-    const outline = new SimpleLineSymbol({ color: [110, 110, 110, 55], width: 0.4 });
+    // Build once from the loaded polygon geometries - thin grey outlines only.
+    // Alpha is a 0-1 float (B-004 lesson): 0.22 here, the old 55 clamped to opaque.
+    const outline = new SimpleLineSymbol({ color: [110, 110, 110, 0.22], width: 0.4 });
     const fillSym = new SimpleFillSymbol({ color: [0, 0, 0, 0], outline });
+    // Each outline polygon carries its POSTCODE and a popupTemplate so that in pie
+    // mode a click anywhere inside the postcode (not just on the pie symbol) opens
+    // the make-breakdown popup. The layer is hidden outside pie mode, so this never
+    // intercepts clicks in colour-map mode.
+    const outlinePopup = {
+      title: "Postcode {POSTCODE}",
+      content: buildPostcodePopupContent,
+    };
     const graphics = [...graphicsByPostcode.values()].map(
-      (g) => new ArcGraphic({ geometry: g.geometry, symbol: fillSym })
+      (g) => new ArcGraphic({
+        geometry: g.geometry,
+        symbol: fillSym,
+        attributes: { POSTCODE: g.attributes.POSTCODE },
+        popupTemplate: outlinePopup as any,
+      })
     );
     const gl = new GraphicsLayer({ graphics, listMode: "hide", visible: false });
     view.map?.add(gl, 0); // insert below all other layers
@@ -206,6 +247,11 @@ export function DominantMakeView({ layer, view, dataStore, year, years, onYearCh
           new Set(graphicsByPostcode.keys())
         );
 
+        // Always keep the colour-map renderer current, even while in pie mode -
+        // otherwise a year change made in pie mode leaves a stale renderer (and
+        // stale popup closure) to be re-applied when switching back to colour map.
+        dominantRendererRef.current = renderer;
+
         // Apply the current display mode. pieMode is captured via closure from
         // the outer component scope; the effect re-runs on year change only.
         // In pie mode this REBUILDS the pie layer with the new year's counts, which is
@@ -217,8 +263,10 @@ export function DominantMakeView({ layer, view, dataStore, year, years, onYearCh
           layer.featureReduction = null;
           (layer as any).definitionExpression = "";
           layer.renderer = renderer;
-          layer.popupTemplate = buildPopup(byPostcode, breakdown);
-          dominantRendererRef.current = renderer;
+          layer.popupTemplate = {
+            title: "Postcode {POSTCODE}",
+            content: buildPostcodePopupContent,
+          } as any;
         }
         setLegend(legend);
         setStrength(strength);
@@ -245,6 +293,12 @@ export function DominantMakeView({ layer, view, dataStore, year, years, onYearCh
       hidePieLayer();
       layer.featureReduction = null;
       if (dominantRendererRef.current) layer.renderer = dominantRendererRef.current;
+      // Re-apply the popup too: the ref-reading content function means it always
+      // shows the CURRENT year's breakdown, even after year changes in pie mode.
+      layer.popupTemplate = {
+        title: "Postcode {POSTCODE}",
+        content: buildPostcodePopupContent,
+      } as any;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pieMode]);
@@ -322,31 +376,4 @@ export function DominantMakeView({ layer, view, dataStore, year, years, onYearCh
   );
 }
 
-/**
- * Popup for colour-map mode. Uses the same percentage-table layout as the pie popup
- * so the two modes feel consistent. Reads from the precomputed breakdown map (not from
- * graphic attributes) since the colour-map mode runs on the shared polygon layer whose
- * fields are only the top-5 + DOMINANT_SHARE.
- */
-function buildPopup(
-  byPostcode: Map<string, DominantMake>,
-  breakdownMap: Map<string, { toyota: number; ford: number; holden: number; merc: number; hyundai: number; other: number; total: number }>,
-) {
-  return {
-    title: "Postcode {POSTCODE}",
-    content: (feature: { graphic: Graphic }) => {
-      const pc = feature.graphic.attributes.POSTCODE as string;
-      const dm = byPostcode.get(pc);
-      const bd = breakdownMap.get(pc);
-      if (!dm || dm.pcTotal <= 0) {
-        return `<div style="font-family:var(--font-sans),-apple-system,sans-serif;font-size:13px">No registration data for this postcode.</div>`;
-      }
-      const attrs: Record<string, number> = {
-        toyota: bd?.toyota ?? 0, ford: bd?.ford ?? 0, holden: bd?.holden ?? 0,
-        merc: bd?.merc ?? 0, hyundai: bd?.hyundai ?? 0,
-      };
-      return buildMakePopupContent(attrs, "", `${dm.pcTotal.toLocaleString()} total registrations`);
-    },
-  };
-}
 

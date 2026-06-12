@@ -214,6 +214,8 @@ export function NewVsOldView({
         <MapCard
           title={`% made ${threshold} or later`}
           collapsible
+          minWidth={200}
+          maxWidth={230}
           footer={
             <>
               "Last 5 years" = made {threshold} or later. Fixed breaks.
